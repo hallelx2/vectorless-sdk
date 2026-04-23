@@ -1,0 +1,54 @@
+# Publish Python SDK to PyPI when a tag like `py-v1.0.0` is pushed.
+#
+# Trigger:
+#   git tag py-v1.0.0
+#   git push origin py-v1.0.0
+#
+# Required secret: PYPI_TOKEN (PyPI API token for vectorless-sdk)
+
+name: Publish Python SDK
+
+on:
+  push:
+    tags:
+      - "py-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install hatchling build ruff
+
+      - name: Lint
+        run: ruff check vectorless/
+
+      - name: Format check
+        run: ruff format --check vectorless/
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Verify package
+        run: |
+          pip install dist/*.whl
+          python -c "import vectorless; print(f'vectorless {vectorless.__version__}')"
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages-dir: python/dist/

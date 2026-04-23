@@ -1,0 +1,51 @@
+# CI — runs on every push and PR. Lint, typecheck, and build both SDKs.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx tsup
+
+  python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: pip install ruff hatchling build
+      - run: ruff check vectorless/
+      - run: ruff format --check vectorless/
+      - run: python -m build
+      - run: pip install dist/*.whl
+      - run: python -c "import vectorless; print(f'vectorless {vectorless.__version__}')"
