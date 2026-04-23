@@ -1,0 +1,35 @@
+# ── Node / TypeScript ──
+node_modules/
+dist/
+*.tsbuildinfo
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+*.whl
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# ── Environment ──
+.env
+.env.*
+!.env.example
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Docker ──
+docker-compose.override.yml

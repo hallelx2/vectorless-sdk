@@ -1,0 +1,110 @@
+# SDK test stack: Vectorless server + backing services with API key auth.
+#
+# Usage:
+#   cd vectorless-sdk
+#   docker compose up -d             # start everything
+#   docker compose logs -f server    # follow server logs
+#   npm test                         # run TypeScript SDK tests
+#   pytest                           # run Python SDK tests
+#   docker compose down -v           # tear down (remove volumes)
+#
+# The server embeds the engine in-process — no separate engine service needed.
+# Uses River queue (Postgres-backed) so no Redis required.
+
+services:
+  # ── Postgres ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: vectorless
+      POSTGRES_PASSWORD: vectorless
+      POSTGRES_DB: vectorless
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vectorless"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── MinIO (S3-compatible storage) ──────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    volumes:
+      - miniodata:/data
+
+  # Create the default bucket on first start.
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        sleep 2 &&
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/vectorless &&
+        echo 'bucket ready'
+      "
+
+  # ── Vectorless Server (embeds engine) ──────────────────────────────
+  server:
+    build:
+      context: ..
+      dockerfile: vectorless-server/Dockerfile
+      args:
+        VERSION: "sdk-test"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      # ── Server config ──
+      VLS_ADDR: ":8080"
+      VLS_LOG_LEVEL: "debug"
+
+      # ── Auth: API key enabled for SDK testing ──
+      VLS_AUTH_MODE: "api_key"
+      VLS_AUTH_API_KEY: "vl_test_sk_1234567890abcdef"
+
+      # ── Metrics ──
+      VLS_METRICS_ENABLED: "true"
+
+      # ── CORS: allow SDK test scripts ──
+      VLS_CORS_ENABLED: "true"
+      VLS_CORS_ORIGINS: "*"
+
+      # ── Engine: Database ──
+      VLS_DATABASE_URL: "postgres://vectorless:vectorless@postgres:5432/vectorless?sslmode=disable"
+
+      # ── Engine: Storage (MinIO) ──
+      VLS_STORAGE_DRIVER: "s3"
+      VLE_STORAGE_S3_ENDPOINT: "http://minio:9000"
+      VLE_STORAGE_S3_REGION: "us-east-1"
+      VLE_STORAGE_S3_BUCKET: "vectorless"
+      VLE_STORAGE_S3_ACCESS_KEY: "minioadmin"
+      VLE_STORAGE_S3_SECRET_KEY: "minioadmin"
+      VLE_STORAGE_S3_USE_PATH_STYLE: "true"
+
+      # ── Engine: Queue (River, Postgres-backed) ──
+      VLS_QUEUE_DRIVER: "river"
+
+      # ── Engine: LLM ──
+      VLS_LLM_DRIVER: "anthropic"
+      VLS_ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    command: ["--role", "server"]
+
+volumes:
+  pgdata:
+  miniodata:

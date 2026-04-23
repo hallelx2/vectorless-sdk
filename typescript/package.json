@@ -1,0 +1,54 @@
+{
+  "name": "vectorless",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for Vectorless — structure-preserving document retrieval without embeddings",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hallelx2/vectorless-sdk",
+    "directory": "typescript"
+  },
+  "homepage": "https://vectorless.dev",
+  "bugs": "https://github.com/hallelx2/vectorless-sdk/issues",
+  "keywords": [
+    "vectorless",
+    "document-retrieval",
+    "rag",
+    "llm",
+    "ai",
+    "structure-preserving",
+    "no-embeddings",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
