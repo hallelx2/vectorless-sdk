@@ -19,9 +19,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
 
     steps:
       - uses: actions/checkout@v4
@@ -34,17 +31,20 @@ jobs:
         run: pip install hatchling build ruff
 
       - name: Lint
+        working-directory: python
         run: ruff check vectorless/
 
       - name: Format check
+        working-directory: python
         run: ruff format --check vectorless/
 
       - name: Build sdist and wheel
+        working-directory: python
         run: python -m build
 
-      - name: Verify package
+      - name: Verify package installs
         run: |
-          pip install dist/*.whl
+          pip install python/dist/*.whl
           python -c "import vectorless; print(f'vectorless {vectorless.__version__}')"
 
       - name: Publish to PyPI
