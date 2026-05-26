@@ -84,6 +84,8 @@ def _build_headers(config: VectorlessConfig) -> Dict[str, str]:
     }
     if config.api_key:
         headers["Authorization"] = f"Bearer {config.api_key}"
+    if config.store:
+        headers["X-Vectorless-Store"] = config.store
     return headers
 
 

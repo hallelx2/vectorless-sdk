@@ -179,6 +179,9 @@ export class HttpTransport implements Transport {
     if (this.config.apiKey) {
       headers["Authorization"] = `Bearer ${this.config.apiKey}`;
     }
+    if (this.config.store) {
+      headers["X-Vectorless-Store"] = this.config.store;
+    }
     return headers;
   }
 

@@ -18,6 +18,9 @@ type Config struct {
 	APIKey string
 	// BaseURL of the Vectorless server (default "http://localhost:8080").
 	BaseURL string
+	// Store scopes every request to one store (sent as X-Vectorless-Store).
+	// Only needed for org-wide keys; a store-bound key scopes automatically.
+	Store string
 	// Transport protocol (default TransportHTTP).
 	Transport TransportProtocol
 	// TimeoutMs is the request timeout in milliseconds (default 30,000).
@@ -39,6 +42,11 @@ func WithAPIKey(key string) Option {
 // WithBaseURL sets the server base URL.
 func WithBaseURL(url string) Option {
 	return func(c *Config) { c.BaseURL = url }
+}
+
+// WithStore scopes every request to one store (X-Vectorless-Store).
+func WithStore(store string) Option {
+	return func(c *Config) { c.Store = store }
 }
 
 // WithTransport selects the wire protocol.

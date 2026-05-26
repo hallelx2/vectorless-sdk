@@ -25,6 +25,7 @@ type HTTPTransport struct {
 	client  *http.Client
 	baseURL string
 	apiKey  string
+	store   string
 }
 
 // NewHTTPTransport creates a new HTTP/REST transport.
@@ -35,6 +36,7 @@ func NewHTTPTransport(cfg vectorless.Config) *HTTPTransport {
 		},
 		baseURL: strings.TrimRight(cfg.BaseURL, "/"),
 		apiKey:  cfg.APIKey,
+		store:   cfg.Store,
 	}
 }
 
@@ -239,6 +241,9 @@ func (t *HTTPTransport) setHeaders(req *http.Request) {
 	req.Header.Set("User-Agent", "vectorless-go/"+sdkVersion)
 	if t.apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+t.apiKey)
+	}
+	if t.store != "" {
+		req.Header.Set("X-Vectorless-Store", t.store)
 	}
 }
 

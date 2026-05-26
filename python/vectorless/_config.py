@@ -15,6 +15,9 @@ class VectorlessConfig:
     timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 0.5
+    # store scopes every request to one store (sent as X-Vectorless-Store).
+    # Only needed for org-wide keys; a store-bound key scopes automatically.
+    store: Optional[str] = None
 
 
 def resolve_config(
@@ -24,6 +27,7 @@ def resolve_config(
     timeout: float = 30.0,
     max_retries: int = 3,
     retry_delay: float = 0.5,
+    store: Optional[str] = None,
 ) -> VectorlessConfig:
     """
     Resolve SDK configuration from explicit args and environment variables.
@@ -44,4 +48,5 @@ def resolve_config(
         timeout=timeout,
         max_retries=max_retries,
         retry_delay=retry_delay,
+        store=store or os.environ.get("VECTORLESS_STORE"),
     )

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -60,6 +62,7 @@ func RegisterTransportFactory(protocol TransportProtocol, factory TransportFacto
 //	)
 type Client struct {
 	transport TransportIface
+	cfg       Config
 }
 
 // NewClient creates a new Vectorless client.
@@ -77,7 +80,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		return nil, fmt.Errorf("vectorless: unknown transport %q — did you import the transport package?", cfg.Transport)
 	}
 
-	return &Client{transport: factory(cfg)}, nil
+	return &Client{transport: factory(cfg), cfg: cfg}, nil
 }
 
 // ── Health ──
@@ -119,6 +122,36 @@ func (c *Client) DeleteDocument(ctx context.Context, documentID string) error {
 // GetDocumentTree returns the hierarchical document outline.
 func (c *Client) GetDocumentTree(ctx context.Context, documentID string) (*DocumentTree, error) {
 	return c.transport.GetDocumentTree(ctx, documentID)
+}
+
+// GetLLMSTxt returns the document rendered as an llms.txt Markdown map —
+// H1 title, a blockquote summary, and a nested section outline with
+// one-line summaries. A compact, agent-friendly index of the document.
+func (c *Client) GetLLMSTxt(ctx context.Context, documentID string) (string, error) {
+	u := strings.TrimRight(c.cfg.BaseURL, "/") + "/v1/documents/" + documentID + "/llms.txt"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	if c.cfg.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
+	}
+	if c.cfg.Store != "" {
+		req.Header.Set("X-Vectorless-Store", c.cfg.Store)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("vectorless: GetLLMSTxt failed: HTTP %d: %s", resp.StatusCode, string(b))
+	}
+	return string(b), nil
 }
 
 // ── Sections ──

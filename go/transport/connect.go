@@ -24,6 +24,7 @@ type ConnectTransport struct {
 	client  *http.Client
 	baseURL string
 	apiKey  string
+	store   string
 }
 
 // NewConnectTransport creates a new ConnectRPC transport.
@@ -34,6 +35,7 @@ func NewConnectTransport(cfg vectorless.Config) *ConnectTransport {
 		},
 		baseURL: strings.TrimRight(cfg.BaseURL, "/"),
 		apiKey:  cfg.APIKey,
+		store:   cfg.Store,
 	}
 }
 
@@ -236,6 +238,9 @@ func (t *ConnectTransport) setHeaders(req *http.Request) {
 	req.Header.Set("User-Agent", "vectorless-go/"+sdkVersion)
 	if t.apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+t.apiKey)
+	}
+	if t.store != "" {
+		req.Header.Set("X-Vectorless-Store", t.store)
 	}
 }
 

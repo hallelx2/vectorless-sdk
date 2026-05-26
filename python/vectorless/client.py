@@ -64,6 +64,7 @@ class VectorlessClient:
         timeout: float = 30.0,
         max_retries: int = 3,
         retry_delay: float = 0.5,
+        store: Optional[str] = None,
     ) -> None:
         config = resolve_config(
             api_key=api_key,
@@ -72,7 +73,9 @@ class VectorlessClient:
             timeout=timeout,
             max_retries=max_retries,
             retry_delay=retry_delay,
+            store=store,
         )
+        self._config = config
 
         self._transport: Transport
         if config.transport == "connect":
@@ -158,6 +161,29 @@ class VectorlessClient:
         Does not include section content.
         """
         return self._transport.get_document_tree(document_id)
+
+    def get_llms_txt(self, document_id: str) -> str:
+        """
+        Get the document rendered as an llms.txt Markdown map — H1 title,
+        a blockquote summary, and a nested section outline with one-line
+        summaries. A compact, agent-friendly index of the document.
+
+        Returns the raw Markdown text.
+        """
+        import httpx
+
+        headers: Dict[str, str] = {}
+        if self._config.api_key:
+            headers["Authorization"] = f"Bearer {self._config.api_key}"
+        if self._config.store:
+            headers["X-Vectorless-Store"] = self._config.store
+        resp = httpx.get(
+            f"{self._config.base_url}/v1/documents/{document_id}/llms.txt",
+            headers=headers,
+            timeout=self._config.timeout,
+        )
+        resp.raise_for_status()
+        return resp.text
 
     def get_section(self, section_id: str) -> Section:
         """Fetch a single section with full content."""

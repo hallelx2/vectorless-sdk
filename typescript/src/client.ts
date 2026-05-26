@@ -1,4 +1,4 @@
-import { resolveConfig, type VectorlessClientOptions } from "./config.js";
+import { resolveConfig, type VectorlessClientOptions, type VectorlessConfig } from "./config.js";
 import type { Transport } from "./transport/interface.js";
 import { HttpTransport } from "./transport/http.js";
 import { ConnectTransport } from "./transport/connect.js";
@@ -60,9 +60,11 @@ function sleep(ms: number): Promise<void> {
  */
 export class VectorlessClient {
   private readonly transport: Transport;
+  private readonly config: VectorlessConfig;
 
   constructor(options?: VectorlessClientOptions) {
     const config = resolveConfig(options);
+    this.config = config;
 
     switch (config.transport) {
       case "connect":
@@ -177,6 +179,27 @@ export class VectorlessClient {
    */
   async getDocumentTree(documentId: string): Promise<DocumentTree> {
     return this.transport.getDocumentTree(documentId);
+  }
+
+  /**
+   * Get the document rendered as an llms.txt Markdown map — H1 title, a
+   * blockquote summary, and a nested section outline with one-line
+   * summaries. A compact, agent-friendly index of the document.
+   *
+   * @returns the raw Markdown text.
+   */
+  async getLlmsTxt(documentId: string): Promise<string> {
+    const headers: Record<string, string> = {};
+    if (this.config.apiKey) headers["Authorization"] = `Bearer ${this.config.apiKey}`;
+    if (this.config.store) headers["X-Vectorless-Store"] = this.config.store;
+    const res = await fetch(
+      `${this.config.baseUrl}/v1/documents/${documentId}/llms.txt`,
+      { headers }
+    );
+    if (!res.ok) {
+      throw new Error(`getLlmsTxt failed: ${res.status} ${await res.text()}`);
+    }
+    return res.text();
   }
 
   /**

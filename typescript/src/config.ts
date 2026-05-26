@@ -21,6 +21,11 @@ export interface VectorlessConfig {
   maxRetries: number;
   /** Base delay between retries in milliseconds (default 500). */
   retryDelay: number;
+  /**
+   * Scope every request to one store (sent as X-Vectorless-Store). Only
+   * needed for org-wide keys; a store-bound key scopes automatically.
+   */
+  store?: string;
 }
 
 export interface VectorlessClientOptions {
@@ -36,6 +41,8 @@ export interface VectorlessClientOptions {
   maxRetries?: number;
   /** Base retry delay in ms (default 500). */
   retryDelay?: number;
+  /** Scope every request to one store (X-Vectorless-Store). Falls back to VECTORLESS_STORE. */
+  store?: string;
 }
 
 const DEFAULTS: Omit<VectorlessConfig, "apiKey"> = {
@@ -51,9 +58,14 @@ export function resolveConfig(options?: VectorlessClientOptions): VectorlessConf
     options?.apiKey ??
     (typeof process !== "undefined" ? process.env?.VECTORLESS_API_KEY : undefined);
 
+  const store =
+    options?.store ??
+    (typeof process !== "undefined" ? process.env?.VECTORLESS_STORE : undefined);
+
   return {
     ...DEFAULTS,
     ...options,
     apiKey: apiKey ?? undefined,
+    store: store ?? undefined,
   };
 }
