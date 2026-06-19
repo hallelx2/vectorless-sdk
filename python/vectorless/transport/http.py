@@ -23,6 +23,7 @@ from vectorless.types import (
     Section,
     QueryResponse,
     QueryStreamEvent,
+    TreeWalkAnswer,
 )
 from vectorless.errors import (
     VectorlessError,
@@ -75,6 +76,27 @@ def _parse_error(response: httpx.Response) -> VectorlessError:
     if status >= 500:
         return ServerError(message, request_id)
     return VectorlessError(message, status, "unknown", request_id)
+
+
+def _build_byok_headers(
+    llm_key: Optional[str],
+    llm_provider: Optional[str],
+    llm_base_url: Optional[str],
+    llm_model: Optional[str],
+) -> Dict[str, str]:
+    """Bring-your-own-key headers. When set, the engine builds a per-request
+    LLM client from these instead of its server-side key (covers the
+    self-hosted / Docker flow where the caller supplies their own key)."""
+    h: Dict[str, str] = {}
+    if llm_key:
+        h["X-LLM-Api-Key"] = llm_key
+    if llm_provider:
+        h["X-LLM-Provider"] = llm_provider
+    if llm_base_url:
+        h["X-LLM-Base-Url"] = llm_base_url
+    if llm_model:
+        h["X-LLM-Model"] = llm_model
+    return h
 
 
 def _build_headers(config: VectorlessConfig) -> Dict[str, str]:
@@ -232,6 +254,40 @@ class HttpTransport(Transport):
             if not resp.is_success:
                 raise _parse_error(resp)
             return QueryResponse.model_validate(resp.json())
+
+        return sync_retry(_do, self._config.max_retries, self._config.retry_delay)
+
+    def answer_treewalk(
+        self,
+        document_id: str,
+        query: str,
+        model: Optional[str] = None,
+        max_hops: Optional[int] = None,
+        max_pages_per_fetch: Optional[int] = None,
+        reasoning: bool = False,
+        llm_key: Optional[str] = None,
+        llm_provider: Optional[str] = None,
+        llm_base_url: Optional[str] = None,
+        llm_model: Optional[str] = None,
+    ) -> TreeWalkAnswer:
+        body: Dict[str, Any] = {"document_id": document_id, "query": query}
+        if model:
+            body["model"] = model
+        if max_hops:
+            body["max_hops"] = max_hops
+        if max_pages_per_fetch:
+            body["max_pages_per_fetch"] = max_pages_per_fetch
+        if reasoning:
+            body["reasoning"] = True
+        headers = _build_byok_headers(llm_key, llm_provider, llm_base_url, llm_model)
+
+        def _do() -> TreeWalkAnswer:
+            resp = self._client.post(
+                "/v1/answer/treewalk", json=body, headers=headers or None
+            )
+            if not resp.is_success:
+                raise _parse_error(resp)
+            return TreeWalkAnswer.model_validate(resp.json())
 
         return sync_retry(_do, self._config.max_retries, self._config.retry_delay)
 

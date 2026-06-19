@@ -15,6 +15,7 @@ from vectorless.types import (
     Section,
     QueryResponse,
     QueryStreamEvent,
+    TreeWalkAnswer,
 )
 
 
@@ -24,6 +25,28 @@ class Transport(ABC):
 
     Implemented by HttpTransport and ConnectTransport.
     """
+
+    # ── TreeWalk answer (HTTP only) ──
+
+    def answer_treewalk(
+        self,
+        document_id: str,
+        query: str,
+        model: Optional[str] = None,
+        max_hops: Optional[int] = None,
+        max_pages_per_fetch: Optional[int] = None,
+        reasoning: bool = False,
+        llm_key: Optional[str] = None,
+        llm_provider: Optional[str] = None,
+        llm_base_url: Optional[str] = None,
+        llm_model: Optional[str] = None,
+    ) -> TreeWalkAnswer:
+        """Page-based agentic answer. HTTP transport only; the Connect
+        protocol does not expose this endpoint."""
+        raise NotImplementedError(
+            "answer_treewalk is only available over the HTTP transport "
+            "(use transport='http')"
+        )
 
     # ── Health ──
 

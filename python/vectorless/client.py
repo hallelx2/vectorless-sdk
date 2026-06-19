@@ -19,6 +19,7 @@ from vectorless.types import (
     DocumentTree,
     Section,
     QueryResponse,
+    TreeWalkAnswer,
     QueryStreamEvent,
 )
 
@@ -221,6 +222,48 @@ class VectorlessClient:
             reserved_for_prompt,
             max_parallel_calls,
             max_sections,
+        )
+
+    def answer_treewalk(
+        self,
+        document_id: str,
+        query: str,
+        *,
+        model: Optional[str] = None,
+        max_hops: Optional[int] = None,
+        max_pages_per_fetch: Optional[int] = None,
+        reasoning: bool = False,
+        llm_key: Optional[str] = None,
+        llm_provider: Optional[str] = None,
+        llm_base_url: Optional[str] = None,
+        llm_model: Optional[str] = None,
+    ) -> TreeWalkAnswer:
+        """
+        Answer a question using the page-based agentic ("treewalk")
+        strategy — the canonical Vectorless retrieval path. The model
+        navigates the document by page ranges and returns a
+        natural-language answer with page-grounded citations in one
+        round-trip (no separate synthesis call).
+
+        Bring-your-own-key: pass ``llm_key`` (and optionally
+        ``llm_provider`` / ``llm_base_url`` / ``llm_model``) to have the
+        engine use your own credentials for this request instead of its
+        server-side key — handy against a self-hosted / Docker engine
+        started without a key.
+
+        HTTP transport only.
+        """
+        return self._transport.answer_treewalk(
+            document_id,
+            query,
+            model=model,
+            max_hops=max_hops,
+            max_pages_per_fetch=max_pages_per_fetch,
+            reasoning=reasoning,
+            llm_key=llm_key,
+            llm_provider=llm_provider,
+            llm_base_url=llm_base_url,
+            llm_model=llm_model,
         )
 
     def query_stream(

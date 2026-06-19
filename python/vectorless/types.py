@@ -112,6 +112,35 @@ class QueryResponse(BaseModel):
     usage: Optional[Usage] = None
 
 
+# ── TreeWalk answer (page-based agentic strategy) ──
+
+
+class TreeWalkCitation(BaseModel):
+    """A page-range citation backing a treewalk answer."""
+
+    start_page: int = 0
+    end_page: int = 0
+    quote: str = ""
+    section_ids: List[str] = []
+
+
+class TreeWalkAnswer(BaseModel):
+    """Response from POST /v1/answer/treewalk — the agent's natural-language
+    answer plus page-grounded citations, in one round-trip."""
+
+    document_id: str
+    query: str
+    answer: str
+    citations: List[TreeWalkCitation] = []
+    strategy: str = ""
+    model: str = ""
+    confidence: float = 0.0
+    hops_taken: int = 0
+    elapsed_ms: int = 0
+    trace_token: str = ""
+    usage: Optional[Usage] = None
+
+
 # ── Streaming Query ──
 
 QueryStreamEventType = Literal[

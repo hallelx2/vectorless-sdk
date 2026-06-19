@@ -44,6 +44,8 @@ from vectorless.types import (
     QuerySection,
     Usage,
     QueryResponse,
+    TreeWalkAnswer,
+    TreeWalkCitation,
     QueryStreamEvent,
     QueryStreamEventType,
 )
@@ -92,6 +94,8 @@ __all__ = [
     "QuerySection",
     "Usage",
     "QueryResponse",
+    "TreeWalkAnswer",
+    "TreeWalkCitation",
     "QueryStreamEvent",
     "QueryStreamEventType",
     # Errors
