@@ -105,11 +105,15 @@ class Usage(BaseModel):
 class QueryResponse(BaseModel):
     document_id: str
     query: str
-    strategy: str
-    model: str
-    sections: List[QuerySection]
-    elapsed_ms: int
+    # An abstained or Judge-navigated response may carry no model name;
+    # an empty string is a valid answer, not a malformed one.
+    strategy: str = ""
+    model: str = ""
+    sections: List[QuerySection] = []
+    elapsed_ms: int = 0
     usage: Optional[Usage] = None
+    abstained: bool = False
+    abstain_reason: str = ""
 
 
 # ── TreeWalk answer (page-based agentic strategy) ──
