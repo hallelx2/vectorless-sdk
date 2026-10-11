@@ -28,14 +28,9 @@ pip install vectorless-sdk
 ```python
 from vectorless import VectorlessClient
 
-# Deployed instance with API key
-client = VectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
-)
-
-# Self-hosted, no auth needed
-# client = VectorlessClient(base_url="http://localhost:8080")
+# A local engine (go run ./cmd/engine --local) needs no API key.
+# The hosted api.vectorless.dev is closing; run your own engine.
+client = VectorlessClient(base_url="http://localhost:7654")
 
 # 1. Ingest a document
 result = client.ingest_document(
@@ -44,7 +39,7 @@ result = client.ingest_document(
     metadata={"department": "engineering"},
 )
 
-# 2. Wait for processing (parsing → summarizing → ready)
+# 2. Wait until the document is ready
 doc = client.wait_for_ready(
     result.document_id,
     on_progress=lambda s: print(f"Status: {s}"),
@@ -55,7 +50,7 @@ tree = client.get_document_tree(doc.id)
 for section in tree.sections:
     print("  " * section.depth + f"{section.title} ({section.tokens} tokens)")
 
-# 4. Query — LLM navigates the tree to find relevant sections
+# 4. Query: the engine selects the sections and evidence pages that answer it
 response = client.query(doc.id, "What methodology was used?")
 for section in response.sections:
     print(f"\n## {section.title}\n{section.content}")
@@ -69,10 +64,7 @@ Every method has an async counterpart:
 ```python
 from vectorless import AsyncVectorlessClient
 
-async with AsyncVectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
-) as client:
+async with AsyncVectorlessClient(base_url="http://localhost:7654") as client:
     result = await client.ingest_document(b"# Hello\n\nWorld", filename="hello.md")
     doc = await client.wait_for_ready(result.document_id)
 

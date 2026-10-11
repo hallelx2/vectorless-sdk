@@ -5,7 +5,7 @@
 <h1 align="center">Vectorless SDK</h1>
 
 <p align="center">
-  <strong>Official client SDKs for Vectorless — structure-preserving document retrieval without embeddings.</strong>
+  <strong>Official client SDKs for Vectorless: document retrieval without chunking or embeddings.</strong>
 </p>
 
 <p align="center">
@@ -18,15 +18,32 @@
 
 ---
 
-## What is Vectorless?
+## Status
 
-Vectorless is a document retrieval engine that preserves document structure. Instead of chunking documents into fragments and embedding them in a vector database, Vectorless:
+The hosted Vectorless service is closing (decided 2026-10-11), so `https://api.vectorless.dev` and `vl_live_` keys will stop working. The SDKs, the engine and the rest of the project are open source and no longer actively developed. Point the clients at an engine you run yourself (see [vectorless-engine](https://github.com/hallelx2/vectorless-engine#quick-start)). Contact: halleluyaholudele@gmail.com.
 
-1. **Parses** documents into hierarchical trees (headings → sections)
-2. **Summarizes** each section with an LLM
-3. **Retrieves** by having the LLM reason over the tree outline to select the most relevant sections
+## How it works
 
-No embeddings. No vector databases. Full sections returned with complete context.
+Vectorless is a Go retrieval engine with no chunking, no embeddings and no vector database. These SDKs are thin clients for its HTTP and ConnectRPC API. What happens behind the API, in the pipeline production ran from 2026-10-06:
+
+1. **Ingest.** pdfgrab reads every word on every PDF page with its rectangle. The engine finds the document's contents page; code lists the candidate entries and Jev, TypeSafe's System One model, confirms them. Each entry is placed on its real page by searching the body, with Jev picking the page. Sections over 20 pages are split at their own headings. Ingest makes no generative call and writes no summaries.
+2. **Query.** Jev ranks the sections against the question, skims the heads of the candidate pages, reads the best pages in full and follows "see Note N" cross-references. The evidence pages come back verbatim, with page ranges. `query()` returns this. Retrieval makes no generative call.
+3. **Answer.** On `POST /v1/answer`, a generative model writes the answer over the evidence pages and each claim is pinned to a line of its page (a pincite). Jev picks the supporting quote from the page's own sentences, so no generated text can reach a citation.
+4. **Replay.** Every answer is stored under a trace token and can be returned again byte for byte. That is a stored record, not a re-run: Jev is not deterministic.
+
+Jev is a hosted TypeSafe API. Without a TypeSafe key the engine falls back to a generative model for these decisions. Dated measurements, and what they do not show, are in the engine's [Results](https://github.com/hallelx2/vectorless-engine#results) and [evaluation reports](https://github.com/hallelx2/vectorless-engine/tree/main/docs/evaluations).
+
+### What the SDKs cover
+
+| Call | TypeScript | Python | Go |
+|---|---|---|---|
+| Ingest, get, list, delete documents; wait until ready | yes | yes | yes |
+| Document tree, sections | yes | yes | yes |
+| `query` (evidence pages and sections), streaming query | yes | yes | yes |
+| `answer_treewalk` (`POST /v1/answer/treewalk`, generative page walk) | no | yes | no |
+| `POST /v1/answer` with pincites, page images, `/v1/replay` | no | no | no |
+
+The last row has no SDK method. Call those routes over HTTP; they are listed in the [engine README](https://github.com/hallelx2/vectorless-engine#http-api).
 
 ## Architecture
 
@@ -44,21 +61,16 @@ No embeddings. No vector databases. Full sections returned with complete context
 │  │   SSE streaming       │  │   Native streaming       │ │
 │  └──────────────────────┘  └──────────────────────────┘ │
 ├─────────────────────────────────────────────────────────┤
-│                  Vectorless Server                        │
-│  ┌────────┐ ┌──────────┐ ┌─────────┐ ┌──────────────┐  │
-│  │  Auth  │ │   CORS   │ │  Metrics│ │   Tracing    │  │
-│  └────────┘ └──────────┘ └─────────┘ └──────────────┘  │
-├─────────────────────────────────────────────────────────┤
-│                  Vectorless Engine                        │
-│  ┌─────────┐ ┌──────────┐ ┌────────┐ ┌─────────────┐  │
-│  │ Parsers │ │ Tree     │ │Retrieval│ │  LLM Gate   │  │
-│  │ MD HTML │ │ Builder  │ │ single  │ │  Anthropic  │  │
-│  │ PDF DOCX│ │ Summaries│ │ chunked │ │  OpenAI     │  │
-│  └─────────┘ └──────────┘ └────────┘ │  Gemini     │  │
-│                                       └─────────────┘  │
+│                  Vectorless Engine (Go)                   │
+│  ┌─────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐  │
+│  │ pdfgrab │ │ Contents │ │judgewalk │ │  llmgate   │  │
+│  │ layout  │ │ tree,    │ │ evidence │ │ Jev judge  │  │
+│  │ MD HTML │ │ placed   │ │ pages,   │ │ + answer   │  │
+│  │ DOCX    │ │ by Jev   │ │ pincites │ │   model    │  │
+│  └─────────┘ └──────────┘ └──────────┘ └────────────┘  │
 │  ┌─────────────┐ ┌────────────┐ ┌───────────────────┐  │
-│  │  PostgreSQL  │ │   S3/MinIO │ │  River/QStash     │  │
-│  │  docs+sections│ │  content   │ │  job queue        │  │
+│  │  PostgreSQL  │ │ S3/GCS/    │ │  River/QStash     │  │
+│  │  docs, tree  │ │ local files│ │  job queue        │  │
 │  └─────────────┘ └────────────┘ └───────────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -75,8 +87,7 @@ npm install vectorless
 import { VectorlessClient } from "vectorless";
 
 const client = new VectorlessClient({
-  baseUrl: "https://api.vectorless.dev",
-  apiKey: "vl_live_...",
+  baseUrl: "http://localhost:7654",
 });
 
 const result = await client.ingestDocument("./report.pdf");
@@ -96,8 +107,7 @@ pip install vectorless-sdk
 from vectorless import VectorlessClient
 
 client = VectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
+    base_url="http://localhost:7654",
 )
 
 result = client.ingest_document("./report.pdf")
@@ -120,8 +130,7 @@ import (
 )
 
 client, _ := vectorless.NewClient(
-    vectorless.WithBaseURL("https://api.vectorless.dev"),
-    vectorless.WithAPIKey("vl_live_..."),
+    vectorless.WithBaseURL("http://localhost:7654"),
 )
 defer client.Close()
 
@@ -156,19 +165,16 @@ VectorlessClient(transport="connect")
 vectorless.NewClient(vectorless.WithTransport(vectorless.TransportConnect))
 ```
 
-## Deploying the Server
+## Pointing at a server
 
-The SDKs work with both **deployed** and **self-hosted** Vectorless instances:
+The SDKs work with any Vectorless engine. A local engine (`go run ./cmd/engine --local`, or the all-in-one container) listens on `:7654` and needs no API key. A server started with `auth.mode: api_key` needs one:
 
-```bash
-# Self-hosted: no API key needed
-client = VectorlessClient(base_url="http://localhost:8080")
+```python
+# Local engine: no API key
+client = VectorlessClient(base_url="http://localhost:7654")
 
-# Deployed: API key required
-client = VectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
-)
+# A server you run with API-key auth
+client = VectorlessClient(base_url="https://your-host", api_key="<your key>")
 ```
 
 ## License

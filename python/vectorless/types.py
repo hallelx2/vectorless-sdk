@@ -90,8 +90,12 @@ class QuerySection(BaseModel):
     parent_id: str = ""
     title: str
     summary: str = ""
-    token_count: int
+    token_count: int = 0
     content: str
+    # Set when the unit is a page a page-based strategy found, not a
+    # section of the tree (id "page_<n>").
+    page: Optional[int] = None
+    confidence: Optional[float] = None
 
 
 class Usage(BaseModel):
@@ -105,11 +109,17 @@ class Usage(BaseModel):
 class QueryResponse(BaseModel):
     document_id: str
     query: str
-    strategy: str
-    model: str
-    sections: List[QuerySection]
-    elapsed_ms: int
+    # An abstained or Judge-navigated response may carry no model name;
+    # an empty string is a valid answer, not a malformed one.
+    strategy: str = ""
+    model: str = ""
+    sections: List[QuerySection] = []
+    elapsed_ms: int = 0
     usage: Optional[Usage] = None
+    abstained: bool = False
+    abstain_reason: str = ""
+    # Page ranges the answer rests on, from page-based strategies.
+    cited_pages: List[List[int]] = []
 
 
 # ── TreeWalk answer (page-based agentic strategy) ──

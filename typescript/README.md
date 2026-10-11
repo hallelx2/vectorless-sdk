@@ -32,14 +32,9 @@ pnpm add vectorless
 ```typescript
 import { VectorlessClient } from "vectorless";
 
-// Deployed instance with API key
-const client = new VectorlessClient({
-  baseUrl: "https://api.vectorless.dev",
-  apiKey: "vl_live_...",
-});
-
-// Self-hosted, no auth needed
-// const client = new VectorlessClient({ baseUrl: "http://localhost:8080" });
+// A local engine (go run ./cmd/engine --local) needs no API key.
+// The hosted api.vectorless.dev is closing; run your own engine.
+const client = new VectorlessClient({ baseUrl: "http://localhost:7654" });
 
 // 1. Ingest a document
 const result = await client.ingestDocument("./research-paper.pdf", {
@@ -47,7 +42,7 @@ const result = await client.ingestDocument("./research-paper.pdf", {
   metadata: { department: "engineering" },
 });
 
-// 2. Wait for processing (parsing → summarizing → ready)
+// 2. Wait until the document is ready
 const doc = await client.waitForReady(result.document_id, {
   onProgress: (status) => console.log(`Status: ${status}`),
 });
@@ -58,7 +53,7 @@ for (const section of tree.sections) {
   console.log("  ".repeat(section.depth) + `${section.title} (${section.tokens} tokens)`);
 }
 
-// 4. Query — LLM navigates the tree to find relevant sections
+// 4. Query: the engine selects the sections and evidence pages that answer it
 const response = await client.query(doc.id, "What methodology was used?");
 for (const section of response.sections) {
   console.log(`\n## ${section.title}\n${section.content}`);
