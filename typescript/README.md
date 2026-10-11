@@ -32,14 +32,9 @@ pnpm add vectorless
 ```typescript
 import { VectorlessClient } from "vectorless";
 
-// Deployed instance with API key
-const client = new VectorlessClient({
-  baseUrl: "https://api.vectorless.dev",
-  apiKey: "vl_live_...",
-});
-
-// Self-hosted, no auth needed
-// const client = new VectorlessClient({ baseUrl: "http://localhost:8080" });
+// A local engine (go run ./cmd/engine --local) needs no API key.
+// The hosted api.vectorless.dev is closing; run your own engine.
+const client = new VectorlessClient({ baseUrl: "http://localhost:7654" });
 
 // 1. Ingest a document
 const result = await client.ingestDocument("./research-paper.pdf", {

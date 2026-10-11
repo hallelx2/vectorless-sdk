@@ -40,10 +40,10 @@ import (
 func main() {
     ctx := context.Background()
 
-    // Deployed instance
+    // A local engine (go run ./cmd/engine --local) needs no API key.
+    // The hosted api.vectorless.dev is closing; run your own engine.
     client, err := vectorless.NewClient(
-        vectorless.WithBaseURL("https://api.vectorless.dev"),
-        vectorless.WithAPIKey("vl_live_..."),
+        vectorless.WithBaseURL("http://localhost:7654"),
     )
     if err != nil {
         panic(err)

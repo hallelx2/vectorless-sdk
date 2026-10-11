@@ -28,14 +28,9 @@ pip install vectorless-sdk
 ```python
 from vectorless import VectorlessClient
 
-# Deployed instance with API key
-client = VectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
-)
-
-# Self-hosted, no auth needed
-# client = VectorlessClient(base_url="http://localhost:8080")
+# A local engine (go run ./cmd/engine --local) needs no API key.
+# The hosted api.vectorless.dev is closing; run your own engine.
+client = VectorlessClient(base_url="http://localhost:7654")
 
 # 1. Ingest a document
 result = client.ingest_document(
@@ -69,10 +64,7 @@ Every method has an async counterpart:
 ```python
 from vectorless import AsyncVectorlessClient
 
-async with AsyncVectorlessClient(
-    base_url="https://api.vectorless.dev",
-    api_key="vl_live_...",
-) as client:
+async with AsyncVectorlessClient(base_url="http://localhost:7654") as client:
     result = await client.ingest_document(b"# Hello\n\nWorld", filename="hello.md")
     doc = await client.wait_for_ready(result.document_id)
 
