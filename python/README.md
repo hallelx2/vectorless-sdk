@@ -44,7 +44,7 @@ result = client.ingest_document(
     metadata={"department": "engineering"},
 )
 
-# 2. Wait for processing (parsing → summarizing → ready)
+# 2. Wait until the document is ready
 doc = client.wait_for_ready(
     result.document_id,
     on_progress=lambda s: print(f"Status: {s}"),
@@ -55,7 +55,7 @@ tree = client.get_document_tree(doc.id)
 for section in tree.sections:
     print("  " * section.depth + f"{section.title} ({section.tokens} tokens)")
 
-# 4. Query — LLM navigates the tree to find relevant sections
+# 4. Query: the engine selects the sections and evidence pages that answer it
 response = client.query(doc.id, "What methodology was used?")
 for section in response.sections:
     print(f"\n## {section.title}\n{section.content}")
