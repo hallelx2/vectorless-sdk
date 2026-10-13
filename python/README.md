@@ -29,7 +29,7 @@ pip install vectorless-sdk
 from vectorless import VectorlessClient
 
 # A local engine (go run ./cmd/engine --local) needs no API key.
-# The hosted api.vectorless.dev is closing; run your own engine.
+# The hosted api.vectorless.dev is paused; run your own engine.
 client = VectorlessClient(base_url="http://localhost:7654")
 
 # 1. Ingest a document

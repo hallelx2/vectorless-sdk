@@ -41,7 +41,7 @@ func main() {
     ctx := context.Background()
 
     // A local engine (go run ./cmd/engine --local) needs no API key.
-    // The hosted api.vectorless.dev is closing; run your own engine.
+    // The hosted api.vectorless.dev is paused; run your own engine.
     client, err := vectorless.NewClient(
         vectorless.WithBaseURL("http://localhost:7654"),
     )
