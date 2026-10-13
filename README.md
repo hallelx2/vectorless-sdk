@@ -20,7 +20,7 @@
 
 ## Status
 
-The hosted Vectorless service is closing (decided 2026-10-11), so `https://api.vectorless.dev` and `vl_live_` keys will stop working. The SDKs, the engine and the rest of the project are open source and no longer actively developed. Point the clients at an engine you run yourself (see [vectorless-engine](https://github.com/hallelx2/vectorless-engine#quick-start)). Contact: halleluyaholudele@gmail.com.
+The hosted Vectorless service has been paused since 12 October 2026, with its data backed up and its infrastructure kept as code so it can come back. While it is down, `https://api.vectorless.dev` and `vl_live_` keys don't work. The SDKs and the engine are open source, and development is slow while the service is paused: issues and pull requests are read, but replies may take a while. Point the clients at an engine you run yourself with the engine's [self-host setup](https://github.com/hallelx2/vectorless-engine#self-host-the-engine), and pass its `VECTORLESS_API_KEY` as the client's API key. Contact: halleluyaholudele@gmail.com.
 
 ## How it works
 
