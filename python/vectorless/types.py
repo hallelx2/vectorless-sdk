@@ -277,7 +277,9 @@ class CorpusAnswer(CorpusQueryResponse):
     """Response from POST /v1/answer/corpus: the evidence of query_corpus,
     then one answer citing document and page."""
 
-    answer: str = ""
+    # Required: a 2xx answer response without an answer is malformed, not
+    # an empty answer (an explicitly empty string still parses).
+    answer: str
     citations: List[CorpusCitation] = []
     # Retrieval's share of usage; usage covers retrieval and the answer.
     retrieval_usage: Optional[Usage] = None

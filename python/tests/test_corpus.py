@@ -89,3 +89,11 @@ def test_null_lists_from_an_older_engine_parse_as_empty():
 def test_a_hop_that_read_nothing_parses():
     r = CorpusQueryResponse.model_validate({"query": "q", "hops": [{"hop": 2, "routed": 600, "read": None}]})
     assert r.hops[0].read == []
+
+
+def test_an_answer_response_without_an_answer_is_rejected():
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        CorpusAnswer.model_validate(dict(QUERY))
+    assert CorpusAnswer.model_validate(dict(QUERY, answer="")).answer == ""
