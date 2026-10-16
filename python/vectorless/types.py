@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, List, Literal, Dict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 # ── Transport Protocol ──
@@ -245,6 +245,12 @@ class CorpusQueryResponse(BaseModel):
     usage: Optional[Usage] = None
     elapsed_ms: int = 0
     timing: Optional[Timing] = None
+
+    @field_validator("evidence", "documents", "hops", mode="before")
+    @classmethod
+    def _null_is_empty(cls, v):
+        # Engines before 2026-10-16 encoded an empty list as null.
+        return [] if v is None else v
 
 
 class CorpusCitation(BaseModel):

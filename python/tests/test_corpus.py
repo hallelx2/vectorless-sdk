@@ -79,3 +79,8 @@ def test_connect_transport_refuses_corpus_mode():
     c = VectorlessClient(base_url="http://engine.test", api_key="k", transport="connect")
     with pytest.raises(NotImplementedError):
         c.query_corpus("q?")
+
+
+def test_null_lists_from_an_older_engine_parse_as_empty():
+    r = CorpusQueryResponse.model_validate({"query": "q", "evidence": None, "documents": None, "hops": None})
+    assert r.evidence == [] and r.documents == [] and r.hops == []
