@@ -97,3 +97,17 @@ def test_an_answer_response_without_an_answer_is_rejected():
     with pytest.raises(pydantic.ValidationError):
         CorpusAnswer.model_validate(dict(QUERY))
     assert CorpusAnswer.model_validate(dict(QUERY, answer="")).answer == ""
+
+
+def test_abstention_and_card_size_are_sent_and_read():
+    seen = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["body"] = __import__("json").loads(req.content)
+        return httpx.Response(200, json=dict(QUERY, evidence=[], answerable=False, abstained=True,
+                                             abstain_reason="the collection does not appear to answer the question"))
+
+    r = _client(handler).query_corpus("q?", abstain=False, card_chars=400)
+    assert seen["body"] == {"query": "q?", "abstain": False, "card_chars": 400}
+    assert r.abstained and not r.answerable and r.evidence == []
+    assert CorpusQueryResponse.model_validate({"query": "q"}).answerable  # older engines: no field, no abstention
