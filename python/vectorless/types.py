@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, List, Literal, Dict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 # ── Transport Protocol ──
@@ -186,6 +186,103 @@ class TreeWalkAnswer(BaseModel):
     trace_token: str = ""
     usage: Optional[Usage] = None
     timing: Optional[Timing] = None
+
+
+# ── Corpus mode: one question over a whole collection ──
+
+
+class CorpusEvidence(BaseModel):
+    """One page of the merged evidence, from whichever document holds it."""
+
+    document_id: str
+    document_title: str = ""
+    page: int = 0
+    section_title: str = ""
+    text: str = ""
+    # The Judge's probability that this page states a fact the question needs.
+    confidence: float = 0.0
+    # The hop that found it: 1 is the first read, 2+ are bridge hops.
+    hop: int = 1
+
+
+class CorpusDocumentScore(BaseModel):
+    """A document's routing score: the probability that it holds part of
+    what the question needs."""
+
+    document_id: str
+    title: str = ""
+    score: float = 0.0
+    hop: int = 1
+    read: bool = False
+
+
+class CorpusHop(BaseModel):
+    """One round of route, read, merge and coverage."""
+
+    hop: int
+    routed: int = 0
+    read: List[str] = []
+    new_evidence: int = 0
+    # Probability, after this hop, that the evidence states every fact needed.
+    coverage: float = 0.0
+
+    @field_validator("read", mode="before")
+    @classmethod
+    def _null_is_empty(cls, v):
+        return [] if v is None else v
+
+
+class CorpusQueryResponse(BaseModel):
+    """Response from POST /v1/query/corpus."""
+
+    query: str
+    strategy: str = "corpus"
+    evidence: List[CorpusEvidence] = []
+    # The best-routed documents (at most 25), best first.
+    documents: List[CorpusDocumentScore] = []
+    documents_considered: int = 0
+    hops: List[CorpusHop] = []
+    # Final probability that the evidence states every fact the question needs.
+    coverage: float = 0.0
+    # Documents that could not be read, by ID.
+    errors: Optional[Dict[str, str]] = None
+    judge_requests: int = 0
+    usage: Optional[Usage] = None
+    elapsed_ms: int = 0
+    timing: Optional[Timing] = None
+
+    @field_validator("evidence", "documents", "hops", mode="before")
+    @classmethod
+    def _null_is_empty(cls, v):
+        # Engines before 2026-10-16 encoded an empty list as null.
+        return [] if v is None else v
+
+
+class CorpusCitation(BaseModel):
+    """A citation of a corpus answer: one evidence page of one document."""
+
+    model_config = ConfigDict(extra="allow")  # pincite regions ride along when present
+
+    index: int
+    document_id: str
+    document_title: str = ""
+    section_title: str = ""
+    section_ids: List[str] = []
+    start_page: int = 0
+    end_page: int = 0
+    quote: str = ""
+
+
+class CorpusAnswer(CorpusQueryResponse):
+    """Response from POST /v1/answer/corpus: the evidence of query_corpus,
+    then one answer citing document and page."""
+
+    # Required: a 2xx answer response without an answer is malformed, not
+    # an empty answer (an explicitly empty string still parses).
+    answer: str
+    citations: List[CorpusCitation] = []
+    # Retrieval's share of usage; usage covers retrieval and the answer.
+    retrieval_usage: Optional[Usage] = None
 
 
 # ── Streaming Query ──
