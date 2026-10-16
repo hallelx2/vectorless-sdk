@@ -207,6 +207,8 @@ class VectorlessClient:
         max_pages_per_document: Optional[int] = None,
         max_evidence: Optional[int] = None,
         max_hops: Optional[int] = None,
+        abstain: Optional[bool] = None,
+        card_chars: Optional[int] = None,
     ) -> CorpusQueryResponse:
         """
         One question over a whole collection (engine corpus mode).
@@ -218,7 +220,8 @@ class VectorlessClient:
 
         HTTP transport only.
         """
-        body = _corpus_body(document_ids, max_documents, max_pages_per_document, max_evidence, max_hops)
+        body = _corpus_body(document_ids, max_documents, max_pages_per_document, max_evidence, max_hops,
+                            abstain=abstain, card_chars=card_chars)
         return self._transport.query_corpus(query, body)
 
     def answer_corpus(
@@ -232,6 +235,8 @@ class VectorlessClient:
         max_hops: Optional[int] = None,
         model: Optional[str] = None,
         max_tokens: Optional[int] = None,
+        abstain: Optional[bool] = None,
+        card_chars: Optional[int] = None,
     ) -> CorpusAnswer:
         """
         One answer over a whole collection: the evidence of
@@ -242,7 +247,8 @@ class VectorlessClient:
         HTTP transport only.
         """
         body = _corpus_body(
-            document_ids, max_documents, max_pages_per_document, max_evidence, max_hops, model, max_tokens
+            document_ids, max_documents, max_pages_per_document, max_evidence, max_hops, model, max_tokens,
+            abstain=abstain, card_chars=card_chars,
         )
         return self._transport.answer_corpus(query, body)
 
@@ -417,8 +423,12 @@ def _corpus_body(
     max_hops: Optional[int],
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
+    abstain: Optional[bool] = None,
+    card_chars: Optional[int] = None,
 ) -> Dict[str, object]:
     body: Dict[str, object] = {}
+    if abstain is not None:  # False is meaningful: keep the evidence
+        body["abstain"] = bool(abstain)
     if document_ids:
         body["document_ids"] = list(document_ids)
     for key, value in (
@@ -428,6 +438,7 @@ def _corpus_body(
         ("max_hops", max_hops),
         ("model", model),
         ("max_tokens", max_tokens),
+        ("card_chars", card_chars),
     ):
         if value:
             body[key] = value
