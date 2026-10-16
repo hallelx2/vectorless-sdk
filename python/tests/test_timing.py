@@ -21,7 +21,8 @@ def test_query_response_keeps_timing():
     r = QueryResponse.model_validate(QUERY)
     assert isinstance(r.timing, Timing)
     assert r.timing.judge.calls == 5
-    assert abs(r.timing.engine_ms + r.timing.waiting_ms - r.timing.total_ms) < 1e-9
+    assert (r.timing.total_ms, r.timing.engine_ms, r.timing.waiting_ms) == (706.87, 3.4, 703.47)
+    assert r.timing.judge.wait_ms == 696.19 and r.timing.judge.local_ms == 41.83
     assert r.timing.answer_model.first_byte_ms == 0.0
 
 
@@ -36,3 +37,12 @@ def test_treewalk_and_stream_carry_timing():
     assert t.timing is not None and t.timing.total_ms == 706.87
     e = QueryStreamEvent.model_validate({"type": "completed", "timing": QUERY["timing"]})
     assert e.timing is not None and e.timing.db.calls == 3
+
+
+def test_timing_without_totals_is_rejected():
+    import pydantic
+    import pytest
+
+    body = dict(QUERY, timing={})
+    with pytest.raises(pydantic.ValidationError):
+        QueryResponse.model_validate(body)

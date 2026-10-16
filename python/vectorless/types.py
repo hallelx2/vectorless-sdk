@@ -129,9 +129,11 @@ class Timing(BaseModel):
     """Where a request's time went, as the engine measured it.
     engine_ms + waiting_ms == total_ms; waiting_ms is the union of the waits."""
 
-    total_ms: float = 0.0
-    engine_ms: float = 0.0
-    waiting_ms: float = 0.0
+    # Required: a timing object without its totals is a malformed
+    # measurement, not a zero-length request.
+    total_ms: float
+    engine_ms: float
+    waiting_ms: float
     judge: TimingWait = TimingWait()
     answer_model: TimingWait = TimingWait()
     db: TimingWait = TimingWait()
