@@ -242,8 +242,14 @@ class CorpusQueryResponse(BaseModel):
     documents: List[CorpusDocumentScore] = []
     documents_considered: int = 0
     hops: List[CorpusHop] = []
-    # Final probability that the evidence states every fact the question needs.
+    # Final probability that the evidence answers the question.
     coverage: float = 0.0
+    # Whether the collection appears to answer the question at all (engine
+    # threshold on coverage), and whether the engine therefore returned no
+    # evidence (abstain, the default).
+    answerable: bool = True
+    abstained: bool = False
+    abstain_reason: str = ""
     # Documents that could not be read, by ID.
     errors: Optional[Dict[str, str]] = None
     judge_requests: int = 0
