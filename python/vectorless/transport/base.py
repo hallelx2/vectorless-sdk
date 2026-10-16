@@ -16,6 +16,8 @@ from vectorless.types import (
     QueryResponse,
     QueryStreamEvent,
     TreeWalkAnswer,
+    CorpusQueryResponse,
+    CorpusAnswer,
 )
 
 
@@ -46,6 +48,20 @@ class Transport(ABC):
         raise NotImplementedError(
             "answer_treewalk is only available over the HTTP transport "
             "(use transport='http')"
+        )
+
+    # ── Corpus mode (HTTP only) ──
+
+    def query_corpus(self, query: str, body: Dict[str, object]) -> CorpusQueryResponse:
+        """One question over a whole collection. HTTP transport only."""
+        raise NotImplementedError(
+            "query_corpus is only available over the HTTP transport (use transport='http')"
+        )
+
+    def answer_corpus(self, query: str, body: Dict[str, object]) -> CorpusAnswer:
+        """One answer over a whole collection. HTTP transport only."""
+        raise NotImplementedError(
+            "answer_corpus is only available over the HTTP transport (use transport='http')"
         )
 
     # ── Health ──
@@ -128,6 +144,20 @@ class AsyncTransport(ABC):
 
     Implemented by AsyncHttpTransport and AsyncConnectTransport.
     """
+
+    # ── Corpus mode (HTTP only) ──
+
+    async def query_corpus(self, query: str, body: Dict[str, object]) -> CorpusQueryResponse:
+        """One question over a whole collection. HTTP transport only."""
+        raise NotImplementedError(
+            "query_corpus is only available over the HTTP transport (use transport='http')"
+        )
+
+    async def answer_corpus(self, query: str, body: Dict[str, object]) -> CorpusAnswer:
+        """One answer over a whole collection. HTTP transport only."""
+        raise NotImplementedError(
+            "answer_corpus is only available over the HTTP transport (use transport='http')"
+        )
 
     # ── Health ──
 

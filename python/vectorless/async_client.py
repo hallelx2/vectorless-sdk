@@ -11,6 +11,8 @@ from vectorless.transport.http import AsyncHttpTransport
 from vectorless.transport.connect import AsyncConnectTransport
 from vectorless.errors import DocumentFailedError, TimeoutError
 from vectorless.types import (
+    CorpusQueryResponse,
+    CorpusAnswer,
     HealthResponse,
     VersionResponse,
     Document,
@@ -132,6 +134,56 @@ class AsyncVectorlessClient:
             )
         )
 
+    # ── Corpus mode ──
+
+    async def query_corpus(
+        self,
+        query: str,
+        *,
+        document_ids: Optional[List[str]] = None,
+        max_documents: Optional[int] = None,
+        max_pages_per_document: Optional[int] = None,
+        max_evidence: Optional[int] = None,
+        max_hops: Optional[int] = None,
+    ) -> CorpusQueryResponse:
+        """
+        One question over a whole collection (engine corpus mode).
+
+        The engine routes every document on its Judge, reads the best ones,
+        merges their evidence pages into one ranked list, and takes bridge
+        hops when what was found does not yet cover the question. Leave
+        ``document_ids`` empty to ask over every ready document in scope.
+
+        HTTP transport only.
+        """
+        body = _corpus_body(document_ids, max_documents, max_pages_per_document, max_evidence, max_hops)
+        return await self._transport.query_corpus(query, body)
+
+    async def answer_corpus(
+        self,
+        query: str,
+        *,
+        document_ids: Optional[List[str]] = None,
+        max_documents: Optional[int] = None,
+        max_pages_per_document: Optional[int] = None,
+        max_evidence: Optional[int] = None,
+        max_hops: Optional[int] = None,
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+    ) -> CorpusAnswer:
+        """
+        One answer over a whole collection: the evidence of
+        :meth:`query_corpus`, then one generated answer citing document and
+        page. A low ``coverage`` means the collection may not answer the
+        question, and the answer says so.
+
+        HTTP transport only.
+        """
+        body = _corpus_body(
+            document_ids, max_documents, max_pages_per_document, max_evidence, max_hops, model, max_tokens
+        )
+        return await self._transport.answer_corpus(query, body)
+
     # ── Query ──
 
     async def query(
@@ -241,3 +293,28 @@ class AsyncVectorlessClient:
 
     async def __aexit__(self, *args: object) -> None:
         await self.close()
+
+
+def _corpus_body(
+    document_ids: Optional[List[str]],
+    max_documents: Optional[int],
+    max_pages_per_document: Optional[int],
+    max_evidence: Optional[int],
+    max_hops: Optional[int],
+    model: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+) -> Dict[str, object]:
+    body: Dict[str, object] = {}
+    if document_ids:
+        body["document_ids"] = list(document_ids)
+    for key, value in (
+        ("max_documents", max_documents),
+        ("max_pages_per_document", max_pages_per_document),
+        ("max_evidence", max_evidence),
+        ("max_hops", max_hops),
+        ("model", model),
+        ("max_tokens", max_tokens),
+    ):
+        if value:
+            body[key] = value
+    return body

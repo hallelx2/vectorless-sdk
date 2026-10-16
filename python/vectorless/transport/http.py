@@ -14,6 +14,8 @@ from vectorless._streaming import parse_sse_stream, parse_sse_stream_async
 from vectorless._version import __version__
 from vectorless.transport.base import Transport, AsyncTransport
 from vectorless.types import (
+    CorpusQueryResponse,
+    CorpusAnswer,
     HealthResponse,
     VersionResponse,
     Document,
@@ -291,6 +293,24 @@ class HttpTransport(Transport):
 
         return sync_retry(_do, self._config.max_retries, self._config.retry_delay)
 
+    def query_corpus(self, query: str, body: Dict[str, Any]) -> CorpusQueryResponse:
+        def _do() -> CorpusQueryResponse:
+            resp = self._client.post("/v1/query/corpus", json={**body, "query": query})
+            if not resp.is_success:
+                raise _parse_error(resp)
+            return CorpusQueryResponse.model_validate(resp.json())
+
+        return sync_retry(_do, self._config.max_retries, self._config.retry_delay)
+
+    def answer_corpus(self, query: str, body: Dict[str, Any]) -> CorpusAnswer:
+        def _do() -> CorpusAnswer:
+            resp = self._client.post("/v1/answer/corpus", json={**body, "query": query})
+            if not resp.is_success:
+                raise _parse_error(resp)
+            return CorpusAnswer.model_validate(resp.json())
+
+        return sync_retry(_do, self._config.max_retries, self._config.retry_delay)
+
     def query_stream(
         self,
         document_id: str,
@@ -466,6 +486,24 @@ class AsyncHttpTransport(AsyncTransport):
         return await async_retry(
             _do, self._config.max_retries, self._config.retry_delay
         )
+
+    async def query_corpus(self, query: str, body: Dict[str, Any]) -> CorpusQueryResponse:
+        async def _do() -> CorpusQueryResponse:
+            resp = await self._client.post("/v1/query/corpus", json={**body, "query": query})
+            if not resp.is_success:
+                raise _parse_error(resp)
+            return CorpusQueryResponse.model_validate(resp.json())
+
+        return await async_retry(_do, self._config.max_retries, self._config.retry_delay)
+
+    async def answer_corpus(self, query: str, body: Dict[str, Any]) -> CorpusAnswer:
+        async def _do() -> CorpusAnswer:
+            resp = await self._client.post("/v1/answer/corpus", json={**body, "query": query})
+            if not resp.is_success:
+                raise _parse_error(resp)
+            return CorpusAnswer.model_validate(resp.json())
+
+        return await async_retry(_do, self._config.max_retries, self._config.retry_delay)
 
     async def query_stream(
         self,
