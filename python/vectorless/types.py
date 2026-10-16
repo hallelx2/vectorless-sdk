@@ -106,6 +106,38 @@ class Usage(BaseModel):
     llm_calls: int
 
 
+class TimingWait(BaseModel):
+    """One thing a request waited on (the Judge, the answer model, the
+    database or document storage)."""
+
+    calls: int = 0
+    attempts: int = 0
+    failed: int = 0
+    # Wall-clock time at least one call was outstanding.
+    wait_ms: float = 0.0
+    # Sum of call durations; above wait_ms when calls overlapped.
+    busy_ms: float = 0.0
+    # Time from going on the wire to the first response byte (sum and max):
+    # the provider's own latency.
+    first_byte_ms: float = 0.0
+    first_byte_max_ms: float = 0.0
+    # Time calls spent in the engine before going on the wire.
+    local_ms: float = 0.0
+
+
+class Timing(BaseModel):
+    """Where a request's time went, as the engine measured it.
+    engine_ms + waiting_ms == total_ms; waiting_ms is the union of the waits."""
+
+    total_ms: float = 0.0
+    engine_ms: float = 0.0
+    waiting_ms: float = 0.0
+    judge: TimingWait = TimingWait()
+    answer_model: TimingWait = TimingWait()
+    db: TimingWait = TimingWait()
+    storage: TimingWait = TimingWait()
+
+
 class QueryResponse(BaseModel):
     document_id: str
     query: str
@@ -120,6 +152,8 @@ class QueryResponse(BaseModel):
     abstain_reason: str = ""
     # Page ranges the answer rests on, from page-based strategies.
     cited_pages: List[List[int]] = []
+    # The engine's split of this request's time (engine >= 2026-10-16).
+    timing: Optional[Timing] = None
 
 
 # ── TreeWalk answer (page-based agentic strategy) ──
@@ -149,6 +183,7 @@ class TreeWalkAnswer(BaseModel):
     elapsed_ms: int = 0
     trace_token: str = ""
     usage: Optional[Usage] = None
+    timing: Optional[Timing] = None
 
 
 # ── Streaming Query ──
@@ -173,3 +208,5 @@ class QueryStreamEvent(BaseModel):
     document_id: Optional[str] = None
     query: Optional[str] = None
     elapsed_ms: Optional[int] = None
+    # Set on the completed event.
+    timing: Optional[Timing] = None
