@@ -226,6 +226,11 @@ class CorpusHop(BaseModel):
     # Probability, after this hop, that the evidence states every fact needed.
     coverage: float = 0.0
 
+    @field_validator("read", mode="before")
+    @classmethod
+    def _null_is_empty(cls, v):
+        return [] if v is None else v
+
 
 class CorpusQueryResponse(BaseModel):
     """Response from POST /v1/query/corpus."""

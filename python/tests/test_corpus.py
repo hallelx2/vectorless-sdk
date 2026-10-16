@@ -84,3 +84,8 @@ def test_connect_transport_refuses_corpus_mode():
 def test_null_lists_from_an_older_engine_parse_as_empty():
     r = CorpusQueryResponse.model_validate({"query": "q", "evidence": None, "documents": None, "hops": None})
     assert r.evidence == [] and r.documents == [] and r.hops == []
+
+
+def test_a_hop_that_read_nothing_parses():
+    r = CorpusQueryResponse.model_validate({"query": "q", "hops": [{"hop": 2, "routed": 600, "read": None}]})
+    assert r.hops[0].read == []
